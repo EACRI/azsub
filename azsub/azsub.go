@@ -122,17 +122,14 @@ func (a *Azsub) Run() error {
 
 	// runlocal
 	if a.Local {
-		return runlocal(a)
+		return RunLocal(a)
 	}
 
-	conf := NewBatchPoolConfig()
+	// send the job to run on batch
+	err := RunBatch(a)
+	if err != nil {
+		return err
+	}
 
-	err := conf.createBatchPool()
-
-	// create batch job
-	err := createBatchJob()
-
-	// create task
-	err := createTask()
-
+	return err
 }

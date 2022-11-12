@@ -125,3 +125,16 @@ func (b *BatchPoolConfig) createBatchPool(ctx context.Context, resourceGroupID, 
 	fmt.Println(res)
 	return nil
 }
+
+func (b *BatchPoolConfig) createBatchJob() error { return nil }
+
+// run batch send the task definition to batch execution
+func RunBatch(a *Azsub) error {
+
+	b := NewBatchPoolConfig()
+	err := b.createBatchPool()
+	err := b.createBatchJob()
+	err := b.createBatchTask()
+
+	return nil
+}
