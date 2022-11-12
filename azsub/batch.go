@@ -37,7 +37,7 @@ type BatchPoolConfig struct {
 	TaskSlotsPerNode     int32
 	TargetDedicatedNodes int32
 	StartTask            *BatchPoolStartTask
-	Clients
+	Clients              *Clients
 }
 
 // BatchPoolStartTask configures the startTask
@@ -131,10 +131,10 @@ func (b *BatchPoolConfig) createBatchJob() error { return nil }
 // run batch send the task definition to batch execution
 func RunBatch(a *Azsub) error {
 
-	b := NewBatchPoolConfig()
-	err := b.createBatchPool()
-	err := b.createBatchJob()
-	err := b.createBatchTask()
+	// b := NewBatchPoolConfig()
+	// err := b.createBatchPool()
+	// err := b.createBatchJob()
+	// err := b.createBatchTask()
 
 	return nil
 }

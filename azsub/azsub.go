@@ -5,11 +5,10 @@ package azsub
 // of the batch task to the azure batch account
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/Azure/azure-sdk-for-go/services/batch/2019-08-01.10.0/batch"
 	log "github.com/sirupsen/logrus"
@@ -23,7 +22,6 @@ import (
 // }
 
 type Clients struct {
-	Blob      *azblob.Client
 	Container *container.Client
 	Batch     *batch.AccountClient
 }
@@ -35,7 +33,7 @@ type Azsub struct {
 	BlobContainerPrefix string
 	Clients             Clients
 	Local               bool
-	Task                AzSubTask
+	Task                *AzSubTask
 	StartTaskUrl        string
 }
 
@@ -76,8 +74,9 @@ func (a *Azsub) WithLocal(local bool) *Azsub {
 	return a
 }
 
-func (a *Azsub) WithTask(AzSubTask) *Azsub {
+func (a *Azsub) WithTask(task *AzSubTask) *Azsub {
 	// TODO: add task definition
+	a.Task = task
 	return a
 }
 
@@ -86,34 +85,21 @@ func (a *Azsub) WithTask(AzSubTask) *Azsub {
 // will exit with error if this authenticaiton fails
 func (a *Azsub) WithStorage(accountName, containerPrefix string) *Azsub {
 
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	cred, err := container.NewSharedKeyCredential(accountName, containerPrefix)
 	if err != nil {
-		// TODO: attempt to use storage account key environment variable on error
-		log.Errorln(err)
+		log.Errorln("error: storage account key credential invalid")
 		os.Exit(1)
 	}
 
 	containerURL := fmt.Sprintf("https://%s.blob.core.windows.net/%s", accountName, containerPrefix)
-	containerClient, err := container.NewClient(containerURL, cred, nil)
+	cc, err := container.NewClientWithSharedKeyCredential(containerURL, cred, nil)
 	if err != nil {
-		log.Errorln(err)
+		log.Println(errors.New("error: storage account authentication failed"))
 		os.Exit(1)
 	}
 
 	// set container client
-	a.Clients.Container = containerClient
-	log.Infoln("Using container client at URL: %s", containerClient.URL())
-
-	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accountName)
-	blobClient, err := azblob.NewClient(serviceURL, cred, nil)
-	if err != nil {
-		log.Errorln(err)
-		os.Exit(1)
-	}
-
-	// set blobClient
-	a.Clients.Blob = blobClient
-	log.Infoln("Using blob client at URL: %s", a.Clients.Blob.URL())
+	a.Clients.Container = cc
 
 	return a
 }

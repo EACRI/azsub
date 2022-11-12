@@ -43,24 +43,23 @@ and syncing outputs to an azure blob storage`,
 		script, err := flags.GetString("script")
 		logIfErr(err)
 
-		var task azsub.AzSubTask
+		var task *azsub.AzSubTask
 		if command != "" {
 			if script != "" {
 				log.Errorln(errors.New("error: script and command are mutally exclusive"))
 			}
-			task = azsub.AzSubTask{Type: azsub.CommandTypeTask, Task: command}
+			task = &azsub.AzSubTask{Type: azsub.CommandTypeTask, Task: command}
 		} else if script != "" {
-			task = azsub.AzSubTask{Type: azsub.ScriptTypeTask, Task: script}
+			task = &azsub.AzSubTask{Type: azsub.ScriptTypeTask, Task: script}
 		}
 
-		// entrypoint to run the main submission logic
+		// run on azure batch
 		azsub.NewAzsub().
 			WithStorage(storageAccountName, prefix).
 			WithImage(image).
 			WithLocal(local).
 			WithTask(task).
 			Run()
-
 	},
 }
 
@@ -75,7 +74,6 @@ func init() {
 
 	// batch account configuration flags
 	rootCmd.Flags().String("batch-account-url", "", "azure batch account url, https://${name}.${region}.batch.azure.com")
-	rootCmd.MarkFlagRequired("batch-account-url")
 	rootCmd.Flags().String("batch-account-key", "", "azure batch account key")
 	rootCmd.Flags().StringP("image", "i", "ubuntu", "container image url for running the job")
 
