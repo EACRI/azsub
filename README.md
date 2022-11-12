@@ -1,6 +1,6 @@
 # Azsub
 
-Simple command line interface for submitting one off tasks to azure batch.
+Simple command line interface for submitting one-off tasks to azure batch.
 
 ## Motivation
 

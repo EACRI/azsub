@@ -6,6 +6,7 @@ package azsub
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -76,78 +77,62 @@ func (a *Azsub) WithLocal(local bool) *Azsub {
 }
 
 func (a *Azsub) WithTask(AzSubTask) *Azsub {
+	// TODO: add task definition
 	return a
 }
 
-// WithStorageAccount attempts to use default credentials
-// to initialize the container client and the blob client
-func (a *Azsub) WithStorageAccont(accountName string) *Azsub {
+// WithStorage attempts to use default credentials
+// to initialize the storage container and storage blob clients
+// will exit with error if this authenticaiton fails
+func (a *Azsub) WithStorage(accountName, containerPrefix string) *Azsub {
+
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		// TODO: attempt to use storage account key environment variable on error
+		log.Errorln(err)
+		os.Exit(1)
+	}
+
+	containerURL := fmt.Sprintf("https://%s.blob.core.windows.net/%s", accountName, containerPrefix)
+	containerClient, err := container.NewClient(containerURL, cred, nil)
+	if err != nil {
+		log.Errorln(err)
+		os.Exit(1)
+	}
+
+	// set container client
+	a.Clients.Container = containerClient
+	log.Infoln("Using container client at URL: %s", containerClient.URL())
 
 	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accountName)
-
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	blobClient, err := azblob.NewClient(serviceURL, cred, nil)
 	if err != nil {
 		log.Errorln(err)
+		os.Exit(1)
 	}
 
-	client, err := azblob.NewClient(serviceURL, cred, nil)
-	if err != nil {
-		log.Errorln(err)
-	}
-
-	a.Clients.Blob = client
-
-	return a
-}
-
-func (a *Azsub) WithContainer(containerName string) *Azsub {
-
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
-	if err != nil {
-		log.Errorln(err)
-	}
-
-	containerUrl := fmt.Sprintf("https://%s", containerName)
-	cc, err := container.NewClient(containerUrl, cred, &container.ClientOptions{})
-	if err != nil {
-		log.Errorln(err)
-	}
-
-	a.Clients.Container = cc
+	// set blobClient
+	a.Clients.Blob = blobClient
+	log.Infoln("Using blob client at URL: %s", a.Clients.Blob.URL())
 
 	return a
 }
 
 func (a *Azsub) Run() error {
 
-	// authenticate
-	err := authenticate()
-
-	// name jobs
-
 	// runlocal
 	if a.Local {
-		runlocal()
+		return runlocal(a)
 	}
 
-	// create batch pool
-	pool, err := createBatchPool()
-	if err != nil {
-		log.Errorln(err)
-		return err
-	}
+	conf := NewBatchPoolConfig()
+
+	err := conf.createBatchPool()
 
 	// create batch job
-	job, err := pool.CreateBatchJob()
-	if err != nil {
-		log.Errorln(err)
-		return err
-	}
+	err := createBatchJob()
 
-	// create batch task
-	err := job.CreateTask()
-	if err != nil {
-		log.Errorln(err)
-		return err
-	}
+	// create task
+	err := createTask()
+
 }

@@ -28,6 +28,9 @@ and syncing outputs to an azure blob storage`,
 		image, err := flags.GetString("image")
 		logIfErr(err)
 
+		storageAccountName, err := flags.GetString("storage-account-name")
+		logIfErr(err)
+
 		prefix, err := flags.GetString("container-prefix")
 		logIfErr(err)
 
@@ -52,8 +55,8 @@ and syncing outputs to an azure blob storage`,
 
 		// entrypoint to run the main submission logic
 		azsub.NewAzsub().
+			WithStorage(storageAccountName, prefix).
 			WithImage(image).
-			WithContainer(prefix).
 			WithLocal(local).
 			WithTask(task).
 			Run()
@@ -69,26 +72,20 @@ func Execute() {
 }
 
 func init() {
+
+	// batch account configuration flags
+	rootCmd.Flags().String("batch-account-url", "", "azure batch account url, https://${name}.${region}.batch.azure.com")
+	rootCmd.MarkFlagRequired("batch-account-url")
+	rootCmd.Flags().String("batch-account-key", "", "azure batch account key")
 	rootCmd.Flags().StringP("image", "i", "ubuntu", "container image url for running the job")
-	rootCmd.Flags().Bool("local", false, "run the job or script locally")
 
-	rootCmd.Flags().StringP("command", "c", "", "command to submit to the batch task")
+	// storage account configuration flags
+	rootCmd.Flags().String("storage-account-name", "", "azure storage account name")
+	rootCmd.Flags().String("storage-account-key", "", "azure storage account key")
 	rootCmd.Flags().String("container-prefix", "", "storage account container prefix to put results")
-	rootCmd.Flags().StringP("name", "n", "", "what you would like to name your job")
+
+	// task specification flags
+	rootCmd.Flags().Bool("local", false, "run the job or script locally")
+	rootCmd.Flags().StringP("command", "c", "", "command to submit to the batch task")
 	rootCmd.Flags().StringP("script", "s", "", "shell script to submit to the batch task")
-	rootCmd.MarkFlagsMutuallyExclusive("command", "script")
-
-	// rootCmd.Flags().String("batch-account-url", "", "azure batch account url, https://${name}.${region}.batch.azure.com")
-	// rootCmd.MarkFlagRequired("batch-account-url")
-
-	// rootCmd.Flags().String("batch-account-key", "", "azure batch account key")
-	// rootCmd.MarkFlagRequired("batch-account-key")
-
-	// rootCmd.Flags().String("storage-account-name", "", "azure storage account name")
-	// rootCmd.MarkFlagRequired("storage-account-name")
-
-	// rootCmd.Flags().String("storage-account-key", "", "azure storage account key")
-	// rootCmd.MarkFlagRequired("storage-account-key")
-
-	// rootCmd.MarkFlagsRequiredTogether("batch-account-url", "batch-account-key")
 }
